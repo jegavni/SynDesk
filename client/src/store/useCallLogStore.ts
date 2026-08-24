@@ -14,7 +14,7 @@ interface CallLogState {
   unsubscribeFromCallLogs: () => void;
 }
 
-export const useCallLogStore = create<CallLogState>((set, get) => ({
+export const useCallLogStore = create<CallLogState>((set) => ({
   callLogs: [],
   isLoadingCallLogs: false,
 

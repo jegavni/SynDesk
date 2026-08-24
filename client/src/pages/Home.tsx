@@ -432,6 +432,7 @@ const Home = () => {
               <p style={{ color: 'var(--text-secondary)', padding: '1rem', fontSize: '0.9rem' }}>No call logs yet.</p>
             ) : (
               callLogs.map((log) => {
+                if(!authUser) return null;
                 const isCaller = log.caller._id === authUser._id;
                 const peerUser = isCaller ? log.receiver : log.caller;
                 return (
