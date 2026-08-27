@@ -7,9 +7,9 @@ import type { SidebarItem } from '../types';
 
 const Home = () => {
   const { logout, authUser, updateProfile } = useAuthStore();
-  const { 
-    users, getUsers, 
-    messages, getMessages, 
+  const {
+    users, getUsers,
+    messages, getMessages,
     selectedUser, setSelectedUser,
     sendMessage, subscribeToMessages, unsubscribeFromMessages,
     onlineUsers, createGroup, deleteMessage
@@ -58,13 +58,13 @@ const Home = () => {
       getCallLogs();
     }
   }, [sidebarTab, getCallLogs]);
-  
+
   // Chat attachment states
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [selectedFileName, setSelectedFileName] = useState('');
   const [selectedFileType, setSelectedFileType] = useState('');
   const [isUploading, setIsUploading] = useState(false);
-  
+
   // Settings Modal states
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [settingsUsername, setSettingsUsername] = useState('');
@@ -99,14 +99,7 @@ const Home = () => {
   }, [messages]);
 
   // Sync settings modal fields when opening
-  useEffect(() => {
-    if (authUser) {
-      setSettingsUsername(authUser.username || '');
-      setSettingsBio(authUser.bio || 'Hey there! I am using SynDesk.');
-      setSettingsProfilePic(authUser.profilePic || '');
-      setSettingsLastSeenPrivacy(authUser.lastSeenPrivacy || 'everyone');
-    }
-  }, [authUser, showSettingsModal]);
+
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,7 +135,7 @@ const Home = () => {
         return;
       }
       setSelectedFileName(file.name);
-      
+
       let type = 'file';
       if (file.type.startsWith('image/')) {
         type = 'image';
@@ -238,14 +231,27 @@ const Home = () => {
 
   // Only display normal users (excluding existing groups) when choosing members for new group
   const eligibleUsers = users.filter(u => !u.isGroup);
+  const handleOpenSettings = () => {
+    if (!authUser) return;
 
+    setSettingsUsername(authUser.username || '');
+    setSettingsBio(
+      authUser.bio || 'Hey there! I am using SynDesk.'
+    );
+    setSettingsProfilePic(authUser.profilePic || '');
+    setSettingsLastSeenPrivacy(
+      authUser.lastSeenPrivacy || 'everyone'
+    );
+
+    setShowSettingsModal(true);
+  };
   return (
     <div className="flex h-screen" style={{ overflow: 'hidden' }}>
       {/* Sidebar */}
-      <div 
-        className="glass-panel" 
-        style={{ 
-          width: '320px', 
+      <div
+        className="glass-panel"
+        style={{
+          width: '320px',
           borderRight: '1px solid var(--border-color)',
           borderRadius: 0,
           display: 'flex',
@@ -263,10 +269,10 @@ const Home = () => {
           </div>
           <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
             {/* Create Group Button */}
-            <button 
+            <button
               onClick={() => setShowGroupModal(true)}
               style={{
-                padding: '0.4rem', 
+                padding: '0.4rem',
                 backgroundColor: 'var(--border-color)',
                 color: 'white',
                 border: 'none',
@@ -288,10 +294,10 @@ const Home = () => {
             </button>
 
             {/* Settings Button */}
-            <button 
-              onClick={() => setShowSettingsModal(true)}
+            <button
+              onClick={handleOpenSettings}
               style={{
-                padding: '0.4rem', 
+                padding: '0.4rem',
                 backgroundColor: 'var(--border-color)',
                 color: 'white',
                 border: 'none',
@@ -309,14 +315,14 @@ const Home = () => {
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
               </svg>
             </button>
-            
-            <button 
+
+            <button
               onClick={() => setShowInviteModal(true)}
-              style={{ 
-                padding: '0.4rem 0.75rem', 
-                fontSize: '0.8rem', 
-                display: 'flex', 
-                alignItems: 'center', 
+              style={{
+                padding: '0.4rem 0.75rem',
+                fontSize: '0.8rem',
+                display: 'flex',
+                alignItems: 'center',
                 gap: '0.4rem',
                 backgroundColor: 'var(--border-color)',
                 color: 'white',
@@ -380,7 +386,7 @@ const Home = () => {
               <p style={{ color: 'var(--text-secondary)', padding: '1rem', fontSize: '0.9rem' }}>No contacts yet.</p>
             ) : (
               users.map((user) => (
-                <div 
+                <div
                   key={user._id}
                   onClick={() => setSelectedUser(user)}
                   style={{
@@ -432,7 +438,7 @@ const Home = () => {
               <p style={{ color: 'var(--text-secondary)', padding: '1rem', fontSize: '0.9rem' }}>No call logs yet.</p>
             ) : (
               callLogs.map((log) => {
-                if(!authUser) return null;
+                if (!authUser) return null;
                 const isCaller = log.caller._id === authUser._id;
                 const peerUser = isCaller ? log.receiver : log.caller;
                 return (
@@ -467,7 +473,7 @@ const Home = () => {
                             <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
                           </svg>
                         )}
-                        
+
                         {/* Status Icon */}
                         {log.status === 'missed' ? (
                           <span style={{ color: 'var(--error-color)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
@@ -488,7 +494,7 @@ const Home = () => {
                             )}
                           </span>
                         )}
-                        
+
                         {/* Duration */}
                         {log.duration > 0 && (
                           <span style={{ marginLeft: '0.2rem' }}>
@@ -506,7 +512,7 @@ const Home = () => {
             )
           )}
         </div>
-        
+
         {/* Current user profile info & logout */}
         <div style={{ padding: '1rem', borderTop: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem', backgroundColor: 'rgba(0,0,0,0.1)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -629,33 +635,33 @@ const Home = () => {
                         </div>
                       )}
                       {msg.text && <div style={{ marginBottom: '0.5rem' }}>{msg.text}</div>}
-                      
+
                       {/* Render Media Attachments */}
                       {(msg.fileUrl || msg.image) && (
                         <div style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}>
                           {(!msg.fileType || msg.fileType === 'image' || msg.image) ? (
-                            <img 
-                              src={msg.fileUrl || msg.image} 
-                              alt="attachment" 
-                              style={{ maxWidth: '100%', maxHeight: '250px', borderRadius: 'var(--radius-md)', objectFit: 'contain', display: 'block' }} 
+                            <img
+                              src={msg.fileUrl || msg.image}
+                              alt="attachment"
+                              style={{ maxWidth: '100%', maxHeight: '250px', borderRadius: 'var(--radius-md)', objectFit: 'contain', display: 'block' }}
                             />
                           ) : msg.fileType === 'video' ? (
-                            <video 
-                              src={msg.fileUrl} 
-                              controls 
-                              style={{ maxWidth: '100%', maxHeight: '250px', borderRadius: 'var(--radius-md)', display: 'block' }} 
+                            <video
+                              src={msg.fileUrl}
+                              controls
+                              style={{ maxWidth: '100%', maxHeight: '250px', borderRadius: 'var(--radius-md)', display: 'block' }}
                             />
                           ) : msg.fileType === 'audio' ? (
-                            <audio 
-                              src={msg.fileUrl} 
-                              controls 
-                              style={{ maxWidth: '100%', display: 'block' }} 
+                            <audio
+                              src={msg.fileUrl}
+                              controls
+                              style={{ maxWidth: '100%', display: 'block' }}
                             />
                           ) : (
-                            <a 
-                              href={msg.fileUrl} 
-                              target="_blank" 
-                              rel="noopener noreferrer" 
+                            <a
+                              href={msg.fileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary-color)', filter: 'brightness(1.4)', textDecoration: 'underline', fontWeight: '500' }}
                             >
                               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -721,9 +727,9 @@ const Home = () => {
                     <div style={{ fontSize: '0.85rem', fontWeight: '500', color: 'white', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{selectedFileName}</div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{selectedFileType.toUpperCase()}</div>
                   </div>
-                  <button 
-                    type="button" 
-                    onClick={() => { setSelectedFile(null); setSelectedFileName(''); setSelectedFileType(''); }} 
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedFile(null); setSelectedFileName(''); setSelectedFileType(''); }}
                     style={{ background: 'rgba(255, 255, 255, 0.1)', color: 'white', padding: '0.25rem 0.5rem', width: 'auto', borderRadius: 'var(--radius-sm)' }}
                   >
                     ✕
@@ -731,14 +737,14 @@ const Home = () => {
                 </div>
               )}
               <form onSubmit={handleSendMessage} style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                <input 
-                  type="file" 
-                  id="chat-file-input" 
-                  style={{ display: 'none' }} 
+                <input
+                  type="file"
+                  id="chat-file-input"
+                  style={{ display: 'none' }}
                   onChange={handleChatFileChange}
                 />
-                <label 
-                  htmlFor="chat-file-input" 
+                <label
+                  htmlFor="chat-file-input"
                   style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.75rem', borderRadius: '50%', backgroundColor: 'var(--bg-color)', color: 'var(--text-secondary)', transition: 'color 0.2s' }}
                   title="Attach a file"
                 >
@@ -746,11 +752,11 @@ const Home = () => {
                     <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
                   </svg>
                 </label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={text}
                   onChange={(e) => setText(e.target.value)}
-                  placeholder="Type a message..." 
+                  placeholder="Type a message..."
                   style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: 'var(--radius-full)', border: 'none', backgroundColor: 'var(--bg-color)', color: 'white', outline: 'none' }}
                 />
                 <button type="submit" disabled={(!text.trim() && !selectedFile) || isUploading} style={{ borderRadius: 'var(--radius-full)', padding: '0.75rem 1.5rem' }}>
@@ -826,24 +832,24 @@ const Home = () => {
                 ✕
               </button>
             </div>
-            
+
             <form onSubmit={handleSaveSettings} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               {/* Profile Pic Upload */}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
                 <div style={{ position: 'relative', width: '90px', height: '90px' }}>
                   {settingsProfilePic ? (
-                    <img 
-                      src={settingsProfilePic} 
-                      alt="Preview" 
-                      style={{ width: '90px', height: '90px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--primary-color)' }} 
+                    <img
+                      src={settingsProfilePic}
+                      alt="Preview"
+                      style={{ width: '90px', height: '90px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--primary-color)' }}
                     />
                   ) : (
                     <div style={{ width: '90px', height: '90px', borderRadius: '50%', backgroundColor: 'var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 'bold' }}>
                       {settingsUsername.charAt(0).toUpperCase()}
                     </div>
                   )}
-                  <label 
-                    htmlFor="profile-pic-input" 
+                  <label
+                    htmlFor="profile-pic-input"
                     style={{
                       position: 'absolute',
                       bottom: 0,
@@ -867,12 +873,12 @@ const Home = () => {
                       <circle cx="12" cy="13" r="4"></circle>
                     </svg>
                   </label>
-                  <input 
-                    type="file" 
-                    id="profile-pic-input" 
-                    accept="image/*" 
-                    onChange={handleImageChange} 
-                    style={{ display: 'none' }} 
+                  <input
+                    type="file"
+                    id="profile-pic-input"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    style={{ display: 'none' }}
                   />
                 </div>
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Click the icon to upload new picture</span>
@@ -881,11 +887,11 @@ const Home = () => {
               {/* Username Input */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                 <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: '600' }}>Username</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={settingsUsername}
                   onChange={(e) => setSettingsUsername(e.target.value)}
-                  placeholder="Enter username" 
+                  placeholder="Enter username"
                   required
                 />
               </div>
@@ -893,11 +899,11 @@ const Home = () => {
               {/* Bio Input */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                 <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: '600' }}>About / Bio</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={settingsBio}
                   onChange={(e) => setSettingsBio(e.target.value)}
-                  placeholder="Tell us about yourself" 
+                  placeholder="Tell us about yourself"
                   required
                 />
               </div>
@@ -905,7 +911,7 @@ const Home = () => {
               {/* Last Seen Privacy Dropdown */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                 <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: '600' }}>Who can see my Last Seen</label>
-                <select 
+                <select
                   value={settingsLastSeenPrivacy}
                   onChange={(e) => setSettingsLastSeenPrivacy(e.target.value as 'everyone' | 'nobody')}
                   style={{
@@ -952,16 +958,16 @@ const Home = () => {
                 ✕
               </button>
             </div>
-            
+
             <form onSubmit={handleCreateGroupSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               {/* Group Name Input */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                 <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: '600' }}>Group Name</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={groupName}
                   onChange={(e) => setGroupName(e.target.value)}
-                  placeholder="Enter group name" 
+                  placeholder="Enter group name"
                   required
                 />
               </div>
@@ -969,10 +975,10 @@ const Home = () => {
               {/* Members Select List */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                 <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: '600' }}>Select Members</label>
-                <div style={{ 
-                  maxHeight: '180px', 
-                  overflowY: 'auto', 
-                  border: '1px solid var(--border-color)', 
+                <div style={{
+                  maxHeight: '180px',
+                  overflowY: 'auto',
+                  border: '1px solid var(--border-color)',
                   borderRadius: 'var(--radius-md)',
                   backgroundColor: 'var(--bg-color)',
                   padding: '0.5rem'
@@ -981,8 +987,8 @@ const Home = () => {
                     <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', padding: '0.5rem' }}>No members available to add.</p>
                   ) : (
                     eligibleUsers.map((user) => (
-                      <div 
-                        key={user._id} 
+                      <div
+                        key={user._id}
                         onClick={() => handleToggleMember(user._id)}
                         style={{
                           display: 'flex',
@@ -995,10 +1001,10 @@ const Home = () => {
                           transition: 'background-color 0.2s'
                         }}
                       >
-                        <input 
-                          type="checkbox" 
+                        <input
+                          type="checkbox"
                           checked={selectedMembers.includes(user._id)}
-                          onChange={() => {}} // toggled by parent div click
+                          onChange={() => { }} // toggled by parent div click
                           style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                         />
                         {user.profilePic ? (
@@ -1074,10 +1080,10 @@ const Home = () => {
                       )}
                       <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{targetUser?.username}</h2>
                       <p style={{ color: 'var(--text-secondary)' }}>
-                        {callState === 'calling' 
-                          ? (targetUser && onlineUsers.includes(targetUser._id) ? 'Ringing...' : 'Calling...') 
-                          : callState === 'incoming' 
-                            ? 'Incoming Video Call...' 
+                        {callState === 'calling'
+                          ? (targetUser && onlineUsers.includes(targetUser._id) ? 'Ringing...' : 'Calling...')
+                          : callState === 'incoming'
+                            ? 'Incoming Video Call...'
                             : 'Connecting...'}
                       </p>
                     </div>
@@ -1132,10 +1138,10 @@ const Home = () => {
                   </div>
                   <h2 style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>{targetUser?.username}</h2>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem' }}>
-                    {callState === 'calling' 
-                      ? (targetUser && onlineUsers.includes(targetUser._id) ? 'Ringing...' : 'Calling...') 
-                      : callState === 'incoming' 
-                        ? 'Incoming Voice Call...' 
+                    {callState === 'calling'
+                      ? (targetUser && onlineUsers.includes(targetUser._id) ? 'Ringing...' : 'Calling...')
+                      : callState === 'incoming'
+                        ? 'Incoming Voice Call...'
                         : 'Connected'}
                   </p>
                 </div>
