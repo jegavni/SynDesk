@@ -1,11 +1,11 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Schema, Types } from 'mongoose';
 
-export interface ICall extends Document {
-  caller: mongoose.Schema.Types.ObjectId;
-  receiver: mongoose.Schema.Types.ObjectId;
+export interface ICall {
+  caller: Types.ObjectId;
+  receiver: Types.ObjectId;
   type: 'voice' | 'video';
   status: 'missed' | 'rejected' | 'answered';
-  duration: number; // in seconds
+  duration: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -13,12 +13,12 @@ export interface ICall extends Document {
 const callSchema = new Schema<ICall>(
   {
     caller: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
     },
     receiver: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
     },

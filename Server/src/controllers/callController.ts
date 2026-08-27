@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { Types } from 'mongoose';
 import { Call } from '../models/callModel.js';
 
 export const getCallLogs = async (
@@ -15,10 +16,12 @@ export const getCallLogs = async (
       return;
     }
 
+    const objectUserId = new Types.ObjectId(userId.toString());
+
     const callLogs = await Call.find({
       $or: [
-        { caller: userId },
-        { receiver: userId },
+        { caller: objectUserId },
+        { receiver: objectUserId },
       ],
     })
       .populate('caller', 'username profilePic')
