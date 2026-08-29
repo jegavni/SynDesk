@@ -8,7 +8,10 @@ interface DecodedToken {
 
 export const protectRoute = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const token = req.cookies.jwt;
+    let token = req.cookies.jwt;
+    if (!token && req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+      token = req.headers.authorization.split(' ')[1];
+    }
 
     if (!token) {
       res.status(401).json({ message: 'Unauthorized - No Token Provided' });

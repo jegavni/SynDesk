@@ -62,7 +62,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signup: async (data) => {
     set({ isSigningUp: true });
     try {
-      const res = await axiosInstance.post<AuthUser>('/auth/register', data);
+      const res = await axiosInstance.post<AuthUser & { token?: string }>('/auth/register', data);
+      if (res.data.token) {
+        localStorage.setItem('jwt', res.data.token);
+      }
       set({ authUser: res.data });
       get().showToast('Registered successfully!', 'success');
     } catch (error: unknown) {
@@ -78,7 +81,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: async (data) => {
     set({ isLoggingIn: true });
     try {
-      const res = await axiosInstance.post<AuthUser>('/auth/login', data);
+      const res = await axiosInstance.post<AuthUser & { token?: string }>('/auth/login', data);
+      if (res.data.token) {
+        localStorage.setItem('jwt', res.data.token);
+      }
       set({ authUser: res.data });
       get().showToast('Logged in successfully!', 'success');
     } catch (error: unknown) {
@@ -94,6 +100,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     try {
       await axiosInstance.post('/auth/logout');
+      localStorage.removeItem('jwt');
       set({ authUser: null });
       get().showToast('Logged out successfully!', 'success');
     } catch (error: unknown) {

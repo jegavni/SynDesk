@@ -36,7 +36,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
     if (user) {
       await user.save();
-      generateToken(user._id.toString(), res);
+      const token = generateToken(user._id.toString(), res);
 
       res.status(201).json({
         _id: user._id,
@@ -45,6 +45,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         profilePic: user.profilePic,
         bio: user.bio,
         lastSeenPrivacy: user.lastSeenPrivacy,
+        token,
       });
     } else {
       res.status(400).json({ message: 'Invalid user data' });
@@ -73,7 +74,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    generateToken(user._id.toString(), res);
+    const token = generateToken(user._id.toString(), res);
 
     res.status(200).json({
       _id: user._id,
@@ -82,6 +83,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       profilePic: user.profilePic,
       bio: user.bio,
       lastSeenPrivacy: user.lastSeenPrivacy,
+      token,
     });
   } catch (error: any) {
     console.error('Error in login controller', error.message);
