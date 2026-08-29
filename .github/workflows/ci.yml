@@ -1,57 +1,103 @@
-name: CI Pipeline
+name: SynDesk CI/CD
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: ["main", "master"]
+
   pull_request:
-    branches: [ "main", "master" ]
+    branches: ["main", "master"]
 
 jobs:
   build-server:
     name: Build Server
     runs-on: ubuntu-latest
+
     defaults:
       run:
         working-directory: ./Server
-    
+
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Use Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20.x'
-        cache: 'npm'
-        cache-dependency-path: './Server/package-lock.json'
-        
-    - name: Install dependencies
-      run: npm ci || npm install
-      
-    - name: Build server
-      run: npm run build
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "npm"
+          cache-dependency-path: "./Server/package-lock.json"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build server
+        run: npm run build
 
   build-client:
-    name: Build and Lint Client
+    name: Build Client
     runs-on: ubuntu-latest
+
     defaults:
       run:
         working-directory: ./client
-        
+
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Use Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20.x'
-        cache: 'npm'
-        cache-dependency-path: './client/package-lock.json'
-        
-    - name: Install dependencies
-      run: npm ci || npm install
-      
-    - name: Lint client
-      run: npm run lint
-      
-    - name: Build client
-      run: npm run build
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "npm"
+          cache-dependency-path: "./client/package-lock.json"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint client
+        run: npm run lint
+
+      - name: Build client
+        run: npm run build
+
+  docker:
+    name: Build and Push Docker Images
+    runs-on: ubuntu-latest
+
+    needs:
+      - build-server
+      - build-client
+
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build Server Docker Image
+        run: |
+          docker build \
+            -t jegavni/syndesk-server:latest \
+            ./Server
+
+      - name: Push Server Docker Image
+        run: |
+          docker push jegavni/syndesk-server:latest
+
+      - name: Build Client Docker Image
+        run: |
+          docker build \
+            --build-arg VITE_API_BASE_URL=https://syndesk-server-latest.onrender.com/api \
+            -t jegavni/syndesk-client:latest \
+            ./client
+
+      - name: Push Client Docker Image
+        run: |
+          docker push jegavni/syndesk-client:latest

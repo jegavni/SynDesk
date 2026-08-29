@@ -108,7 +108,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const authUser = useAuthStore.getState().authUser;
     if (!authUser || get().socket?.connected) return;
 
-    const socket = io('/', {
+    const isProd = import.meta.env.PROD;
+    const baseUrl = isProd 
+      ? 'https://syndesk-server-latest.onrender.com' 
+      : import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || '/';
+    const socket = io(baseUrl, {
       query: {
         userId: authUser._id,
       },
