@@ -14,6 +14,7 @@ interface ChatState {
   isMessagesLoading: boolean;
   socket: Socket | null;
   onlineUsers: string[];
+  typingUsers: Record<string, string[]>;
 
   getUsers: () => Promise<void>;
   getMessages: (userId: string) => Promise<void>;
@@ -25,6 +26,7 @@ interface ChatState {
   subscribeToMessages: () => void;
   unsubscribeFromMessages: () => void;
   deleteMessage: (messageId: string) => Promise<void>;
+  sendTypingStatus: (isTyping: boolean) => void;
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -35,6 +37,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   isMessagesLoading: false,
   socket: null,
   onlineUsers: [],
+  typingUsers: {},
 
   getUsers: async () => {
     set({ isUsersLoading: true });
@@ -125,6 +128,28 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set({ onlineUsers: userIds });
     });
 
+    socket.on('typing', ({ chatId, senderName }: { chatId: string; senderId: string; senderName: string }) => {
+      const current = get().typingUsers[chatId] || [];
+      if (!current.includes(senderName)) {
+        set({
+          typingUsers: {
+            ...get().typingUsers,
+            [chatId]: [...current, senderName],
+          },
+        });
+      }
+    });
+
+    socket.on('stop-typing', ({ chatId, senderName }: { chatId: string; senderId: string; senderName: string }) => {
+      const current = get().typingUsers[chatId] || [];
+      set({
+        typingUsers: {
+          ...get().typingUsers,
+          [chatId]: current.filter((name) => name !== senderName),
+        },
+      });
+    });
+
     socket.on('newMessage', (newMessage: Message) => {
       const { selectedUser, messages } = get();
       if (!selectedUser) return;
@@ -159,5 +184,29 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   unsubscribeFromMessages: () => {
     // Cleaned up automatically on socket disconnection.
+  },
+
+  sendTypingStatus: (isTyping) => {
+    const { selectedUser, socket } = get();
+    if (!selectedUser || !socket) return;
+
+    const authUser = useAuthStore.getState().authUser;
+    if (!authUser) return;
+
+    if (isTyping) {
+      socket.emit('typing', {
+        chatId: selectedUser._id,
+        isGroup: !!selectedUser.isGroup,
+        senderId: authUser._id,
+        senderName: authUser.username,
+      });
+    } else {
+      socket.emit('stop-typing', {
+        chatId: selectedUser._id,
+        isGroup: !!selectedUser.isGroup,
+        senderId: authUser._id,
+        senderName: authUser.username,
+      });
+    }
   },
 }));

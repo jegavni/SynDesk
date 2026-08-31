@@ -6,10 +6,30 @@ const Register = () => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { signup, isSigningUp } = useAuthStore();
+  const { signup, isSigningUp, showToast } = useAuthStore();
+
+  const usernameRegex = /^[A-Za-z0-9_]{3,20}$/;
+  const emailRegex = /^\S+@\S+\.\S+$/;
+  const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{6,}$/;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!usernameRegex.test(username)) {
+      showToast("Username must be 3–20 characters and contain only letters, numbers, or underscores.", "error");
+      return;
+    }
+
+    if (!emailRegex.test(email)) {
+      showToast("Invalid email format.", "error");
+      return;
+    }
+
+    if (!passwordRegex.test(password)) {
+      showToast("Password must be at least 6 characters and contain both letters and numbers.", "error");
+      return;
+    }
+
     signup({ username, email, password });
   };
 

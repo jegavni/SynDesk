@@ -4,6 +4,7 @@ import express from "express";
 import app from "./app.js";
 import { User } from "../models/userModel.js";
 import { Call } from "../models/callModel.js";
+import { Group } from "../models/groupModel.js";
 
 const server = http.createServer(app);
 
@@ -171,6 +172,52 @@ io.on("connection", async (socket) => {
       }
     } catch (err) {
       console.error("Error updating call log duration on end-call:", err);
+    }
+  });
+
+  socket.on("typing", async (data) => {
+    const { chatId, isGroup, senderId, senderName } = data;
+    if (isGroup) {
+      const group = await Group.findById(chatId);
+      if (group) {
+        group.members.forEach((memberId) => {
+          const memberIdStr = memberId.toString();
+          if (memberIdStr !== userId) {
+            const memberSocketId = getReceiverSocketId(memberIdStr);
+            if (memberSocketId) {
+              io.to(memberSocketId).emit("typing", { chatId, senderId, senderName });
+            }
+          }
+        });
+      }
+    } else {
+      const receiverSocketId = getReceiverSocketId(chatId);
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit("typing", { chatId: userId, senderId, senderName });
+      }
+    }
+  });
+
+  socket.on("stop-typing", async (data) => {
+    const { chatId, isGroup, senderId, senderName } = data;
+    if (isGroup) {
+      const group = await Group.findById(chatId);
+      if (group) {
+        group.members.forEach((memberId) => {
+          const memberIdStr = memberId.toString();
+          if (memberIdStr !== userId) {
+            const memberSocketId = getReceiverSocketId(memberIdStr);
+            if (memberSocketId) {
+              io.to(memberSocketId).emit("stop-typing", { chatId, senderId, senderName });
+            }
+          }
+        });
+      }
+    } else {
+      const receiverSocketId = getReceiverSocketId(chatId);
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit("stop-typing", { chatId: userId, senderId, senderName });
+      }
     }
   });
 

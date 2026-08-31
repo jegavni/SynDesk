@@ -66,9 +66,9 @@ export const useCallStore = create<CallState>((set, get) => ({
 
     socket.on('call-answered', async ({ signal }: { signal: RTCSessionDescriptionInit }) => {
       if (pc) {
+        set({ callState: 'connected' });
         try {
           await pc.setRemoteDescription(new RTCSessionDescription(signal));
-          set({ callState: 'connected' });
           for (const candidate of queuedCandidates) {
             try {
               await pc.addIceCandidate(new RTCIceCandidate(candidate));
@@ -232,10 +232,14 @@ export const useCallStore = create<CallState>((set, get) => ({
   },
 
   endCall: () => {
-    const { targetUser, localStream } = get();
+    const { targetUser, localStream, callState } = get();
     const socket = useChatStore.getState().socket;
-    if (socket && targetUser && (get().callState === 'connected' || get().callState === 'calling')) {
-      socket.emit('end-call', { to: targetUser._id });
+    if (socket && targetUser) {
+      if (callState === 'connected' || callState === 'calling') {
+        socket.emit('end-call', { to: targetUser._id });
+      } else if (callState === 'incoming') {
+        socket.emit('reject-call', { to: targetUser._id });
+      }
     }
 
     if (localStream) {

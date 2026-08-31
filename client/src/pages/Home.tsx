@@ -12,7 +12,8 @@ const Home = () => {
     messages, getMessages,
     selectedUser, setSelectedUser,
     sendMessage, subscribeToMessages, unsubscribeFromMessages,
-    onlineUsers, createGroup, deleteMessage
+    onlineUsers, createGroup, deleteMessage,
+    sendTypingStatus, typingUsers
   } = useChatStore();
 
   const {
@@ -81,6 +82,28 @@ const Home = () => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isTypingRef = useRef(false);
+
+  const handleTyping = () => {
+    if (!isTypingRef.current) {
+      isTypingRef.current = true;
+      sendTypingStatus(true);
+    }
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+    typingTimeoutRef.current = setTimeout(() => {
+      isTypingRef.current = false;
+      sendTypingStatus(false);
+    }, 2000);
+  };
+
+  useEffect(() => {
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    isTypingRef.current = false;
+  }, [selectedUser]);
+
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   useEffect(() => {
@@ -104,9 +127,9 @@ const Home = () => {
   }, [selectedUser, getMessages, subscribeToMessages, unsubscribeFromMessages]);
 
   useEffect(() => {
-    // Scroll to bottom when messages change
+    // Scroll to bottom when messages or typing status changes
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, typingUsers]);
 
   // Sync settings modal fields when opening
 
@@ -126,6 +149,9 @@ const Home = () => {
         }
       }
       await sendMessage(payload);
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      isTypingRef.current = false;
+      sendTypingStatus(false);
       setText('');
       setSelectedFile(null);
       setSelectedFileName('');
@@ -561,7 +587,7 @@ const Home = () => {
         ) : (
           <>
             {/* Chat Header */}
-            <div style={{ padding: isMobile ? '0.75rem 1rem' : '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--surface-color)', display: 'flex', alignItems: 'center', gap: isMobile ? '0.5rem' : '1rem' }}>
+            <div style={{ position: 'sticky', top: 0, zIndex: 10, padding: isMobile ? '0.75rem 1rem' : '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--surface-color)', display: 'flex', alignItems: 'center', gap: isMobile ? '0.5rem' : '1rem' }}>
               {isMobile && (
                 <button
                   onClick={() => setSelectedUser(null)}
@@ -746,6 +772,11 @@ const Home = () => {
                   </div>
                 );
               })}
+              {selectedUser && typingUsers[selectedUser._id]?.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', color: 'var(--text-secondary)', fontSize: '0.85rem', fontStyle: 'italic' }}>
+                  <span>{typingUsers[selectedUser._id].join(', ')} {typingUsers[selectedUser._id].length === 1 ? 'is' : 'are'} typing...</span>
+                </div>
+              )}
               <div ref={messagesEndRef} />
             </div>
 
@@ -795,7 +826,10 @@ const Home = () => {
                 <input
                   type="text"
                   value={text}
-                  onChange={(e) => setText(e.target.value)}
+                  onChange={(e) => {
+                    setText(e.target.value);
+                    handleTyping();
+                  }}
                   placeholder="Type a message..."
                   style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: 'var(--radius-full)', border: 'none', backgroundColor: 'var(--bg-color)', color: 'white', outline: 'none' }}
                 />
