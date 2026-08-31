@@ -1,17 +1,42 @@
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import { Response } from 'express';
+import { JWT_SECRET, JWT_REFRESH_SECRET, JWT_EXPIRES_IN, JWT_REFRESH_EXPIRES_IN } from '../config/env.js';
 
-export const generateToken = (userId: string, res: Response) => {
-  const token = jwt.sign({ userId }, process.env.JWT_SECRET as string, {
-    expiresIn: '1h',
+/**
+ * Returns cookie options for refresh tokens.
+ * In development, sameSite: 'lax' allows cross-port localhost requests with credentials.
+ */
+export const getCookieOptions = () => {
+  const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+  return {
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    httpOnly: true, // not accessible via JS — XSS protection
+    sameSite: isDev ? ('lax' as const) : ('none' as const),
+    secure: !isDev,
+    path: '/api/auth/refresh', // scope cookie to refresh endpoint only
+  };
+};
+
+/**
+ * Signs and returns a short-lived access token (default 15 min).
+ */
+export const generateAccessToken = (userId: string): string => {
+  return jwt.sign({ userId }, JWT_SECRET, {
+    expiresIn: JWT_EXPIRES_IN as SignOptions['expiresIn'],
+  });
+};
+
+/**
+ * Signs a long-lived refresh token (default 7 days), sets it as an
+ * httpOnly cookie and returns the raw token string so it can be
+ * persisted (hashed) in the database.
+ */
+export const generateRefreshToken = (userId: string, res: Response): string => {
+  const refreshToken = jwt.sign({ userId }, JWT_REFRESH_SECRET, {
+    expiresIn: JWT_REFRESH_EXPIRES_IN as SignOptions['expiresIn'],
   });
 
-  res.cookie('jwt', token, {
-    maxAge: 1 * 60 * 60 * 1000, // 1 hour in MS
-    httpOnly: true, // prevent XSS attacks cross-site scripting attacks
-    sameSite: process.env.NODE_ENV === 'development' ? 'strict' : 'none', // Allow cross-site cookies in production
-    secure: process.env.NODE_ENV !== 'development',
-  });
+  res.cookie('refreshToken', refreshToken, getCookieOptions());
 
-  return token;
+  return refreshToken;
 };

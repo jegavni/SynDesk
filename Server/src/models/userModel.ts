@@ -9,6 +9,7 @@ export interface IUser extends Document {
   lastSeen: Date;
   bio: string;
   lastSeenPrivacy: 'everyone' | 'nobody';
+  refreshTokens: string[];
 }
 
 const userSchema = new Schema<IUser>(
@@ -48,6 +49,10 @@ const userSchema = new Schema<IUser>(
       type: String,
       enum: ['everyone', 'nobody'],
       default: 'everyone',
+    },
+    refreshTokens: {
+      type: [String],
+      default: [],
     },
   },
   { timestamps: true }

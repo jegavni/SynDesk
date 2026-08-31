@@ -13,39 +13,63 @@ const Login = () => {
   };
 
   return (
-    <div className="flex items-center justify-center h-screen w-full" style={{ padding: '20px' }}>
-      <div className="glass-panel" style={{ width: '100%', maxWidth: '400px', padding: '2rem' }}>
-        <h2 className="text-center mb-4" style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>Welcome Back</h2>
-        <p className="text-center mb-4" style={{ color: 'var(--text-secondary)' }}>Sign in to continue to SynDesk</p>
+    <div className="auth-page">
+      <div className="glass-panel auth-card">
+        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24"
+              fill="none" stroke="var(--primary-color)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+            <span style={{ fontSize: '1.3rem', fontWeight: '800', color: 'white' }}>SynDesk</span>
+          </div>
+          <h1 style={{ fontSize: '1.6rem', fontWeight: '700', color: 'white', marginBottom: '0.35rem' }}>
+            Welcome back
+          </h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+            Sign in to continue to SynDesk
+          </p>
+        </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col" style={{ gap: '1rem' }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Email</label>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+              Email
+            </label>
             <input
               type="email"
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              autoComplete="email"
             />
           </div>
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Password</label>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+              Password
+            </label>
             <input
               type="password"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              autoComplete="current-password"
             />
           </div>
-          <button disabled={isLoggingIn}>
-            {isLoggingIn ? "Logging in..." : "Login"}
+
+          <button type="submit" disabled={isLoggingIn} style={{ width: '100%', marginTop: '0.25rem' }}>
+            {isLoggingIn ? 'Signing in…' : 'Sign In'}
           </button>
         </form>
 
-        <p className="text-center mt-4" style={{ fontSize: '0.9rem' }}>
-          Don't have an account? <Link to="/register">Create one</Link>
+        <p style={{ textAlign: 'center', fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '1.25rem' }}>
+          Don't have an account?{' '}
+          <Link to="/register" style={{ color: 'var(--primary-color)', fontWeight: '600' }}>
+            Create one
+          </Link>
         </p>
       </div>
     </div>

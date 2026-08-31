@@ -8,11 +8,26 @@ import { Group } from "../models/groupModel.js";
 
 const server = http.createServer(app);
 
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  "https://syndesk-client.onrender.com",
+  "http://localhost:5173",
+  "http://localhost:3000",
+].filter(Boolean) as string[];
+
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(null, true);
+      }
+    },
     methods: ["GET", "POST"],
+    credentials: true,
   },
+  transports: ["websocket", "polling"],
 });
 
 export const getReceiverSocketId = (receiverId: string) => {
@@ -40,15 +55,29 @@ io.on("connection", async (socket) => {
 
   socket.on("call-user", async (data) => {
     const receiverSocketId = getReceiverSocketId(data.to);
-    if (receiverSocketId) {
-      io.to(receiverSocketId).emit("incoming-call", {
-        from: userId,
-        signal: data.signal,
-        type: data.type,
+    if (!receiverSocketId) {
+      socket.emit("call-failed", {
+        message: "The user you are trying to call is not online.",
       });
+      return;
     }
 
     try {
+      const callerUser = await User.findById(userId).select("username profilePic");
+
+      io.to(receiverSocketId).emit("incoming-call", {
+        from: userId,
+        caller: callerUser
+          ? {
+              _id: callerUser._id.toString(),
+              username: callerUser.username,
+              profilePic: callerUser.profilePic,
+            }
+          : null,
+        signal: data.signal,
+        type: data.type,
+      });
+
       const newCall = new Call({
         caller: userId,
         receiver: data.to,
@@ -70,7 +99,7 @@ io.on("connection", async (socket) => {
     }
   });
 
-  socket.on("answer-call", async (data) => {
+  const handleAnswerCall = async (data: { to: string; signal?: unknown }) => {
     const callerSocketId = getReceiverSocketId(data.to);
     if (callerSocketId) {
       io.to(callerSocketId).emit("call-answered", {
@@ -90,19 +119,20 @@ io.on("connection", async (socket) => {
         )
           .populate("caller", "username profilePic")
           .populate("receiver", "username profilePic");
-        // Map receiver's ID to the call log too so they can both end it
         activeCalls[userId] = activeCall;
 
-        // Emit to both participants
-        const callerSocketId = getReceiverSocketId(callerId);
+        const callerSockId = getReceiverSocketId(callerId);
         const receiverSocketId = getReceiverSocketId(userId);
-        if (callerSocketId) io.to(callerSocketId).emit("callLogUpdated", updated);
+        if (callerSockId) io.to(callerSockId).emit("callLogUpdated", updated);
         if (receiverSocketId) io.to(receiverSocketId).emit("callLogUpdated", updated);
       }
     } catch (err) {
       console.error("Error updating call log to answered:", err);
     }
-  });
+  };
+
+  // Receiver sends "answer-call" → server relays "call-answered" to caller.
+  socket.on("answer-call", handleAnswerCall);
 
   socket.on("ice-candidate", (data) => {
     const targetSocketId = getReceiverSocketId(data.to);
@@ -113,14 +143,14 @@ io.on("connection", async (socket) => {
     }
   });
 
-  socket.on("reject-call", async (data) => {
-    const callerSocketId = getReceiverSocketId(data.to);
+  const handleRejectCall = async (data: { to: string; reason?: string }) => {
+    const callerSocketId = getReceiverSocketId(data?.to);
     if (callerSocketId) {
-      io.to(callerSocketId).emit("call-rejected");
+      io.to(callerSocketId).emit("call-rejected", { reason: data?.reason });
     }
 
     try {
-      const callerId = data.to;
+      const callerId = data?.to;
       const activeCall = activeCalls[callerId];
       if (activeCall) {
         const updated = await Call.findByIdAndUpdate(
@@ -132,25 +162,27 @@ io.on("connection", async (socket) => {
           .populate("receiver", "username profilePic");
         delete activeCalls[callerId];
 
-        // Emit to both participants
-        const callerSocketId = getReceiverSocketId(callerId);
+        const callerSockId = getReceiverSocketId(callerId);
         const receiverSocketId = getReceiverSocketId(userId);
-        if (callerSocketId) io.to(callerSocketId).emit("callLogUpdated", updated);
+        if (callerSockId) io.to(callerSockId).emit("callLogUpdated", updated);
         if (receiverSocketId) io.to(receiverSocketId).emit("callLogUpdated", updated);
       }
     } catch (err) {
       console.error("Error updating call log to rejected:", err);
     }
-  });
+  };
 
-  socket.on("end-call", async (data) => {
-    const targetSocketId = getReceiverSocketId(data.to);
+  // Receiver sends "reject-call" → server relays "call-rejected" to caller.
+  socket.on("reject-call", handleRejectCall);
+
+  const handleEndCall = async (data: { to: string }) => {
+    const targetSocketId = getReceiverSocketId(data?.to);
     if (targetSocketId) {
       io.to(targetSocketId).emit("call-ended");
     }
 
     try {
-      const partnerId = data.to;
+      const partnerId = data?.to;
       const activeCall = activeCalls[userId] || activeCalls[partnerId];
       if (activeCall) {
         const duration = activeCall.startTime ? Math.round((Date.now() - activeCall.startTime) / 1000) : 0;
@@ -164,7 +196,6 @@ io.on("connection", async (socket) => {
         delete activeCalls[userId];
         delete activeCalls[partnerId];
 
-        // Emit to both participants
         const userSocketId = getReceiverSocketId(userId);
         const partnerSocketId = getReceiverSocketId(partnerId);
         if (userSocketId) io.to(userSocketId).emit("callLogUpdated", updated);
@@ -173,7 +204,10 @@ io.on("connection", async (socket) => {
     } catch (err) {
       console.error("Error updating call log duration on end-call:", err);
     }
-  });
+  };
+
+  // Either side sends "end-call" → server relays "call-ended" to peer.
+  socket.on("end-call", handleEndCall);
 
   socket.on("typing", async (data) => {
     const { chatId, isGroup, senderId, senderName } = data;
@@ -224,6 +258,52 @@ io.on("connection", async (socket) => {
   socket.on("disconnect", async () => {
     console.log("A user disconnected", socket.id);
     if (userId) {
+      // ── Tear down any active call this user was in ─────────────────────────
+      const activeCall = activeCalls[userId];
+      if (activeCall) {
+        try {
+          // Find the partner: caller stores the call, receiver gets mapped in on answer-call
+          const callLog = await Call.findById(activeCall.callLogId)
+            .populate("caller", "username profilePic")
+            .populate("receiver", "username profilePic");
+
+          if (callLog) {
+            const partnerId =
+              callLog.caller._id.toString() === userId
+                ? callLog.receiver._id.toString()
+                : callLog.caller._id.toString();
+
+            // Notify partner so their UI tears down immediately
+            const partnerSocketId = getReceiverSocketId(partnerId);
+            if (partnerSocketId) {
+              io.to(partnerSocketId).emit("call-ended");
+            }
+
+            // Finalise the call log duration
+            const duration = activeCall.startTime
+              ? Math.round((Date.now() - activeCall.startTime) / 1000)
+              : 0;
+
+            const updated = await Call.findByIdAndUpdate(
+              activeCall.callLogId,
+              { duration },
+              { new: true }
+            )
+              .populate("caller", "username profilePic")
+              .populate("receiver", "username profilePic");
+
+            delete activeCalls[userId];
+            delete activeCalls[partnerId];
+
+            // Push refreshed call log to both participants
+            const partnerSock = getReceiverSocketId(partnerId);
+            if (partnerSock) io.to(partnerSock).emit("callLogUpdated", updated);
+          }
+        } catch (err) {
+          console.error("Error cleaning up call on disconnect:", err);
+        }
+      }
+
       delete userSocketMap[userId];
       try {
         await User.findByIdAndUpdate(userId, { isOnline: false, lastSeen: new Date() });
