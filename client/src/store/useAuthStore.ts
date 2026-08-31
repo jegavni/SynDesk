@@ -41,19 +41,35 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   clearToast: () => set({ toast: null }),
 
   checkAuth: async () => {
+    set({ isCheckingAuth: true });
     try {
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        // No stored token: check if an httpOnly refresh-token cookie exists to restore session
+        try {
+          const refreshRes = await axiosInstance.post<{ accessToken: string }>('/auth/refresh');
+          if (refreshRes.data.accessToken) {
+            localStorage.setItem('accessToken', refreshRes.data.accessToken);
+            axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${refreshRes.data.accessToken}`;
+            const userRes = await axiosInstance.get<AuthUser>('/auth/check');
+            set({ authUser: userRes.data });
+            return;
+          }
+        } catch {
+          // Guest / not logged in
+          set({ authUser: null });
+          return;
+        }
+      } else {
+        axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      }
+
       const res = await axiosInstance.get<AuthUser>('/auth/check');
       set({ authUser: res.data });
-    } catch (error: unknown) {
-      console.log('Error in checkAuth', error);
+    } catch {
       set({ authUser: null });
-      // Only show error toast if there was a token present (i.e. not during initial load of unauthenticated user)
-      if (document.cookie.includes('jwt')) {
-        const message =
-          (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-          'Session expired. Please log in again.';
-        get().showToast(message, 'error');
-      }
+      localStorage.removeItem('accessToken');
+      delete axiosInstance.defaults.headers.common['Authorization'];
     } finally {
       set({ isCheckingAuth: false });
     }
@@ -62,9 +78,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signup: async (data) => {
     set({ isSigningUp: true });
     try {
-      const res = await axiosInstance.post<AuthUser & { token?: string }>('/auth/register', data);
-      if (res.data.token) {
-        localStorage.setItem('jwt', res.data.token);
+      const res = await axiosInstance.post<AuthUser & { accessToken?: string }>('/auth/register', data);
+      if (res.data.accessToken) {
+        localStorage.setItem('accessToken', res.data.accessToken);
+        axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${res.data.accessToken}`;
       }
       set({ authUser: res.data });
       get().showToast('Registered successfully!', 'success');
@@ -81,9 +98,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: async (data) => {
     set({ isLoggingIn: true });
     try {
-      const res = await axiosInstance.post<AuthUser & { token?: string }>('/auth/login', data);
-      if (res.data.token) {
-        localStorage.setItem('jwt', res.data.token);
+      const res = await axiosInstance.post<AuthUser & { accessToken?: string }>('/auth/login', data);
+      if (res.data.accessToken) {
+        localStorage.setItem('accessToken', res.data.accessToken);
+        axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${res.data.accessToken}`;
       }
       set({ authUser: res.data });
       get().showToast('Logged in successfully!', 'success');
@@ -100,14 +118,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     try {
       await axiosInstance.post('/auth/logout');
-      localStorage.removeItem('jwt');
+    } catch {
+      // ignore logout network errors
+    } finally {
+      localStorage.removeItem('accessToken');
+      delete axiosInstance.defaults.headers.common['Authorization'];
       set({ authUser: null });
       get().showToast('Logged out successfully!', 'success');
-    } catch (error: unknown) {
-      const message =
-        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Error logging out';
-      get().showToast(message, 'error');
     }
   },
 
