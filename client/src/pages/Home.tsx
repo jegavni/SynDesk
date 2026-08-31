@@ -81,6 +81,16 @@ const Home = () => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   useEffect(() => {
     getUsers();
   }, [getUsers]);
@@ -251,10 +261,10 @@ const Home = () => {
       <div
         className="glass-panel"
         style={{
-          width: '320px',
+          width: isMobile ? '100%' : '320px',
+          display: isMobile && selectedUser ? 'none' : 'flex',
           borderRight: '1px solid var(--border-color)',
           borderRadius: 0,
-          display: 'flex',
           flexDirection: 'column',
           backgroundColor: 'var(--surface-color)'
         }}
@@ -535,7 +545,14 @@ const Home = () => {
       </div>
 
       {/* Main Chat Area */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-color)' }}>
+      <div
+        style={{
+          flex: 1,
+          display: isMobile && !selectedUser ? 'none' : 'flex',
+          flexDirection: 'column',
+          backgroundColor: 'var(--bg-color)'
+        }}
+      >
         {!selectedUser ? (
           <div className="flex flex-col items-center justify-center h-full">
             <h2 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '1rem' }}>Welcome to SynDesk!</h2>
@@ -544,7 +561,30 @@ const Home = () => {
         ) : (
           <>
             {/* Chat Header */}
-            <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--surface-color)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ padding: isMobile ? '0.75rem 1rem' : '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--surface-color)', display: 'flex', alignItems: 'center', gap: isMobile ? '0.5rem' : '1rem' }}>
+              {isMobile && (
+                <button
+                  onClick={() => setSelectedUser(null)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'white',
+                    padding: '0.4rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 'auto',
+                    marginRight: '0.25rem'
+                  }}
+                  title="Back to Chats"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                  </svg>
+                </button>
+              )}
               {selectedUser.isGroup ? (
                 <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--primary-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -779,7 +819,7 @@ const Home = () => {
           justifyContent: 'center',
           zIndex: 50
         }}>
-          <div className="glass-panel" style={{ width: '400px', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="glass-panel" style={{ width: isMobile ? '90%' : '400px', padding: isMobile ? '1.5rem' : '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>Invite friends</h3>
               <button onClick={() => setShowInviteModal(false)} style={{ background: 'none', color: 'var(--text-secondary)', padding: '0.5rem', width: 'auto' }}>
@@ -825,7 +865,7 @@ const Home = () => {
           zIndex: 50,
           backdropFilter: 'blur(4px)'
         }}>
-          <div className="glass-panel" style={{ width: '450px', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div className="glass-panel" style={{ width: isMobile ? '90%' : '450px', padding: isMobile ? '1.5rem' : '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ fontSize: '1.4rem', fontWeight: 'bold' }}>Settings</h3>
               <button onClick={() => setShowSettingsModal(false)} style={{ background: 'none', color: 'var(--text-secondary)', padding: '0.5rem', width: 'auto' }}>
@@ -951,7 +991,7 @@ const Home = () => {
           zIndex: 50,
           backdropFilter: 'blur(4px)'
         }}>
-          <div className="glass-panel" style={{ width: '450px', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div className="glass-panel" style={{ width: isMobile ? '90%' : '450px', padding: isMobile ? '1.5rem' : '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ fontSize: '1.4rem', fontWeight: 'bold' }}>Create New Group</h3>
               <button onClick={() => { setShowGroupModal(false); setSelectedMembers([]); setGroupName(''); }} style={{ background: 'none', color: 'var(--text-secondary)', padding: '0.5rem', width: 'auto' }}>
@@ -1046,16 +1086,16 @@ const Home = () => {
           <div style={{
             position: 'relative',
             width: '100%',
-            maxWidth: callType === 'video' ? '100%' : '800px',
-            height: callType === 'video' ? '100%' : '800px',
-            maxHeight: callType === 'video' ? '100%' : '85vh',
+            maxWidth: (isMobile || callType === 'video') ? '100%' : '800px',
+            height: (isMobile || callType === 'video') ? '100%' : '800px',
+            maxHeight: (isMobile || callType === 'video') ? '100%' : '85vh',
             backgroundColor: '#18181b',
-            borderRadius: callType === 'video' ? '0' : 'var(--radius-xl)',
+            borderRadius: (isMobile || callType === 'video') ? '0' : 'var(--radius-xl)',
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',
-            border: callType === 'video' ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
-            boxShadow: callType === 'video' ? 'none' : '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+            border: (isMobile || callType === 'video') ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+            boxShadow: (isMobile || callType === 'video') ? 'none' : '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
           }}>
             {/* Video Streams Section */}
             <div style={{ flex: 1, position: 'relative', backgroundColor: '#09090b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

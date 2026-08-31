@@ -124,6 +124,25 @@ export const useChatStore = create<ChatState>((set, get) => ({
     socket.on('getOnlineUsers', (userIds: string[]) => {
       set({ onlineUsers: userIds });
     });
+
+    socket.on('newMessage', (newMessage: Message) => {
+      const { selectedUser, messages } = get();
+      if (!selectedUser) return;
+
+      const isFromSelectedUser = selectedUser.isGroup
+        ? newMessage.receiverId === selectedUser._id
+        : newMessage.senderId === selectedUser._id;
+
+      if (!isFromSelectedUser) return;
+
+      set({
+        messages: [...messages, newMessage],
+      });
+    });
+
+    socket.on('messageDeleted', ({ messageId }: { messageId: string }) => {
+      set({ messages: get().messages.filter((m) => m._id !== messageId) });
+    });
   },
 
   disconnectSocket: () => {
@@ -135,31 +154,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   subscribeToMessages: () => {
-    const { selectedUser, socket } = get();
-    if (!selectedUser || !socket) return;
-
-    socket.on('newMessage', (newMessage: Message) => {
-      const isFromSelectedUser = selectedUser.isGroup
-        ? newMessage.receiverId === selectedUser._id
-        : newMessage.senderId === selectedUser._id;
-
-      if (!isFromSelectedUser) return;
-
-      set({
-        messages: [...get().messages, newMessage],
-      });
-    });
-
-    socket.on('messageDeleted', ({ messageId }: { messageId: string }) => {
-      set({ messages: get().messages.filter((m) => m._id !== messageId) });
-    });
+    // Already handled globally on connection in connectSocket to prevent timing/closure bugs.
   },
 
   unsubscribeFromMessages: () => {
-    const socket = get().socket;
-    if (socket) {
-      socket.off('newMessage');
-      socket.off('messageDeleted');
-    }
+    // Cleaned up automatically on socket disconnection.
   },
 }));

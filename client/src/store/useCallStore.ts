@@ -28,6 +28,7 @@ interface CallState {
   setupSocketListeners: () => void;
 }
 
+let queuedCandidates: RTCIceCandidateInit[] = [];
 let pc: RTCPeerConnection | null = null;
 
 export const useCallStore = create<CallState>((set, get) => ({
@@ -65,18 +66,32 @@ export const useCallStore = create<CallState>((set, get) => ({
 
     socket.on('call-answered', async ({ signal }: { signal: RTCSessionDescriptionInit }) => {
       if (pc) {
-        await pc.setRemoteDescription(new RTCSessionDescription(signal));
-        set({ callState: 'connected' });
+        try {
+          await pc.setRemoteDescription(new RTCSessionDescription(signal));
+          set({ callState: 'connected' });
+          for (const candidate of queuedCandidates) {
+            try {
+              await pc.addIceCandidate(new RTCIceCandidate(candidate));
+            } catch (e) {
+              console.error('Error adding queued ice candidate', e);
+            }
+          }
+          queuedCandidates = [];
+        } catch (e) {
+          console.error('Error setting remote description on call-answered', e);
+        }
       }
     });
 
     socket.on('ice-candidate', async ({ candidate }: { candidate: RTCIceCandidateInit }) => {
-      if (pc && candidate) {
+      if (pc && pc.remoteDescription && pc.remoteDescription.type) {
         try {
           await pc.addIceCandidate(new RTCIceCandidate(candidate));
         } catch (e) {
           console.error('Error adding received ice candidate', e);
         }
+      } else {
+        queuedCandidates.push(candidate);
       }
     });
 
@@ -182,6 +197,15 @@ export const useCallStore = create<CallState>((set, get) => ({
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
 
+      for (const candidate of queuedCandidates) {
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (e) {
+          console.error('Error adding queued ice candidate', e);
+        }
+      }
+      queuedCandidates = [];
+
       socket.emit('answer-call', {
         to: targetUser._id,
         signal: answer,
@@ -222,6 +246,8 @@ export const useCallStore = create<CallState>((set, get) => ({
       pc.close();
       pc = null;
     }
+
+    queuedCandidates = [];
 
     set({
       callState: 'idle',
