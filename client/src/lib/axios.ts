@@ -1,9 +1,10 @@
-import axios from 'axios';
+import axios from "axios";
 
-const isProd = import.meta.env.PROD;
-const baseURL = isProd 
-  ? '/api' 
-  : import.meta.env.VITE_API_BASE_URL || '/api';
+console.log("🔥 AXIOS FILE LOADED");
+
+const baseURL = import.meta.env.VITE_API_BASE_URL || "/api";
+
+console.log("🔥 API BASE URL:", baseURL);
 
 export const axiosInstance = axios.create({
   baseURL,
@@ -11,10 +12,33 @@ export const axiosInstance = axios.create({
 });
 
 axiosInstance.interceptors.request.use((config) => {
-  const token = localStorage.getItem('jwt');
+  console.log("🔥 REQUEST:", config.method, config.url);
+
+  const token = localStorage.getItem("jwt");
+
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
   return config;
 });
-console.log('Axios instance created with base URL:', import.meta.env.VITE_API_BASE_URL);
+
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.log("🔥 API ERROR:", error.response?.status, error.config?.url);
+
+    if (error.response?.status === 401) {
+      localStorage.removeItem("jwt");
+
+      if (
+        window.location.pathname !== "/login" &&
+        window.location.pathname !== "/register"
+      ) {
+        window.location.href = "/login";
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);

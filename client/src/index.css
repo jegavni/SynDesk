@@ -1,18 +1,55 @@
-:root {
-  --bg-color: #0f172a; /* Slate 900 */
-  --surface-color: #1e293b; /* Slate 800 */
-  --primary-color: #6366f1; /* Indigo 500 */
-  --primary-hover: #4f46e5; /* Indigo 600 */
-  --text-primary: #f8fafc; /* Slate 50 */
-  --text-secondary: #94a3b8; /* Slate 400 */
-  --border-color: #334155; /* Slate 700 */
-  --error-color: #ef4444; /* Red 500 */
-  --success-color: #22c55e; /* Green 500 */
-  
-  --radius-sm: 0.25rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 1rem;
-  --radius-full: 9999px;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+    --radius: 0.5rem;
+    
+    /* Legacy variables for backwards compatibility */
+    --bg-color: #0f172a;
+    --surface-color: #1e293b;
+    --primary-color: #6366f1;
+    --primary-hover: #4f46e5;
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --border-color: #334155;
+    --error-color: #ef4444;
+    --success-color: #22c55e;
+    
+    --radius-sm: 0.25rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 1rem;
+    --radius-full: 9999px;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }
 
 * {
@@ -76,7 +113,8 @@ button:hover {
 }
 
 button:active {
-  transform: translateY(1px);
+  /* transform: translateY(1px); removed for mobile touch compatibility */
+  opacity: 0.9;
 }
 
 button:disabled {
@@ -91,7 +129,7 @@ button:disabled {
 .justify-between { justify-content: space-between; }
 .flex-col { flex-direction: column; }
 .w-full { width: 100%; }
-.h-screen { height: 100vh; }
+.h-screen { height: 100vh; height: 100dvh; }
 .text-center { text-align: center; }
 .mt-4 { margin-top: 1rem; }
 .mb-4 { margin-bottom: 1rem; }

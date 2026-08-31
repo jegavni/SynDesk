@@ -4,10 +4,12 @@ import { protectRoute } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-router.get('/users', protectRoute, getUsersForSidebar);
-router.post('/groups', protectRoute, createGroup);
-router.get('/:id', protectRoute, getMessages);
-router.post('/send/:id', protectRoute, sendMessage);
-router.delete('/:id', protectRoute, deleteMessage);
+router.use(protectRoute);
+
+router.get('/users', getUsersForSidebar);
+router.post('/groups', createGroup);
+router.get('/:id', getMessages);
+router.post('/send/:id', sendMessage);
+router.delete('/:id', deleteMessage);
 
 export default router;
