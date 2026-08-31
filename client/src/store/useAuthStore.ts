@@ -41,6 +41,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   clearToast: () => set({ toast: null }),
 
   checkAuth: async () => {
+    if (!get().isCheckingAuth) return; // Prevent multiple simultaneous checks
+    set({ isCheckingAuth: true });
     try {
       const res = await axiosInstance.get<AuthUser>('/auth/check');
       set({ authUser: res.data });

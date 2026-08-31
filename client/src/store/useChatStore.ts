@@ -65,22 +65,29 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
-  sendMessage: async (messageData: { text?: string; image?: string; file?: string; fileType?: string }) => {
-    const { selectedUser, messages } = get();
-    if (!selectedUser) return;
+sendMessage: async (messageData) => {
+  const { selectedUser } = get();
 
-    try {
-      const payload = {
-        ...messageData,
-        isGroupMessage: !!selectedUser.isGroup,
-      };
-      const res = await axiosInstance.post<Message>(`/messages/send/${selectedUser._id}`, payload);
-      set({ messages: [...messages, res.data] });
-    } catch (error: unknown) {
-      const msg = (error as ApiError)?.response?.data?.message || 'Error sending message';
-      useAuthStore.getState().showToast(msg, 'error');
-    }
-  },
+  if (!selectedUser) return;
+
+  try {
+    const payload = {
+      ...messageData,
+      isGroupMessage: !!selectedUser.isGroup,
+    };
+
+    await axiosInstance.post<Message>(
+      `/messages/send/${selectedUser._id}`,
+      payload
+    );
+  } catch (error: unknown) {
+    const msg =
+      (error as ApiError)?.response?.data?.message ||
+      'Error sending message';
+
+    useAuthStore.getState().showToast(msg, 'error');
+  }
+},
 
   deleteMessage: async (messageId: string) => {
     try {
@@ -111,17 +118,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const authUser = useAuthStore.getState().authUser;
     if (!authUser || get().socket?.connected) return;
 
-    const isProd = import.meta.env.PROD;
-    const baseUrl = isProd 
-      ? '/' 
-      : import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || '/';
-    const socket = io(baseUrl, {
+  const socketUrl = import.meta.env.PROD
+  ? import.meta.env.VITE_SOCKET_URL
+  : 'http://localhost:5000';
+    const socket = io(socketUrl, {
       query: {
         userId: authUser._id,
       },
+      withCredentials: true,
     });
 
-    socket.connect();
     set({ socket });
 
     socket.on('getOnlineUsers', (userIds: string[]) => {
@@ -150,20 +156,31 @@ export const useChatStore = create<ChatState>((set, get) => ({
       });
     });
 
-    socket.on('newMessage', (newMessage: Message) => {
-      const { selectedUser, messages } = get();
-      if (!selectedUser) return;
+ socket.on('newMessage', (newMessage: Message) => {
+  const { selectedUser } = get();
 
-      const isFromSelectedUser = selectedUser.isGroup
-        ? newMessage.receiverId === selectedUser._id
-        : newMessage.senderId === selectedUser._id;
+  if (!selectedUser) return;
 
-      if (!isFromSelectedUser) return;
+  const isRelevant = selectedUser.isGroup
+    ? newMessage.receiverId === selectedUser._id
+    : newMessage.senderId === selectedUser._id;
 
-      set({
-        messages: [...messages, newMessage],
-      });
-    });
+  if (!isRelevant) return;
+
+  set((state) => {
+    const alreadyExists = state.messages.some(
+      (message) => message._id === newMessage._id
+    );
+
+    if (alreadyExists) {
+      return state;
+    }
+
+    return {
+      messages: [...state.messages, newMessage],
+    };
+  });
+});
 
     socket.on('messageDeleted', ({ messageId }: { messageId: string }) => {
       set({ messages: get().messages.filter((m) => m._id !== messageId) });
@@ -172,10 +189,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   disconnectSocket: () => {
     const socket = get().socket;
-    if (socket?.connected) {
+    if (socket) {
+      socket.removeAllListeners();
       socket.disconnect();
     }
-    set({ socket: null });
+    set({ socket: null,
+      onlineUsers: [],
+      typingUsers: {},
+     });
   },
 
   subscribeToMessages: () => {

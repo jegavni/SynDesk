@@ -10,8 +10,10 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: process.env.CLIENT_URL
+      || "http://localhost:5173",
     methods: ["GET", "POST"],
+    credentials: true,
   },
 });
 
@@ -224,6 +226,52 @@ io.on("connection", async (socket) => {
   socket.on("disconnect", async () => {
     console.log("A user disconnected", socket.id);
     if (userId) {
+      // ── Tear down any active call this user was in ─────────────────────────
+      const activeCall = activeCalls[userId];
+      if (activeCall) {
+        try {
+          // Find the partner: caller stores the call, receiver gets mapped in on answer-call
+          const callLog = await Call.findById(activeCall.callLogId)
+            .populate("caller", "username profilePic")
+            .populate("receiver", "username profilePic");
+
+          if (callLog) {
+            const partnerId =
+              callLog.caller._id.toString() === userId
+                ? callLog.receiver._id.toString()
+                : callLog.caller._id.toString();
+
+            // Notify partner so their UI tears down immediately
+            const partnerSocketId = getReceiverSocketId(partnerId);
+            if (partnerSocketId) {
+              io.to(partnerSocketId).emit("call-ended");
+            }
+
+            // Finalise the call log duration
+            const duration = activeCall.startTime
+              ? Math.round((Date.now() - activeCall.startTime) / 1000)
+              : 0;
+
+            const updated = await Call.findByIdAndUpdate(
+              activeCall.callLogId,
+              { duration },
+              { new: true }
+            )
+              .populate("caller", "username profilePic")
+              .populate("receiver", "username profilePic");
+
+            delete activeCalls[userId];
+            delete activeCalls[partnerId];
+
+            // Push refreshed call log to both participants
+            const partnerSock = getReceiverSocketId(partnerId);
+            if (partnerSock) io.to(partnerSock).emit("callLogUpdated", updated);
+          }
+        } catch (err) {
+          console.error("Error cleaning up call on disconnect:", err);
+        }
+      }
+
       delete userSocketMap[userId];
       try {
         await User.findByIdAndUpdate(userId, { isOnline: false, lastSeen: new Date() });

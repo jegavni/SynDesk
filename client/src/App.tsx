@@ -7,12 +7,12 @@ import { useAuthStore } from './store/useAuthStore';
 import { useChatStore } from './store/useChatStore';
 
 function App() {
-  const { authUser, checkAuth, isCheckingAuth, toast, clearToast } = useAuthStore();
+  const { authUser, isCheckingAuth, toast, clearToast } = useAuthStore();
   const { connectSocket, disconnectSocket } = useChatStore();
 
   useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
+    useAuthStore.getState().checkAuth();
+  }, []);
 
   useEffect(() => {
     if (authUser) {
